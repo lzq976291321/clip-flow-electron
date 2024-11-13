@@ -4,14 +4,13 @@ import {
   clipboard,
   globalShortcut,
   ipcMain,
-  nativeImage,
-  screen,
 } from "electron";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import os from "node:os";
 
-import { exec } from "child_process";
+import registerShortcut from "./register";
+import { checkClipboardService, startClipboardWatcher } from "./clipboard";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -47,65 +46,6 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 let mainWindow: BrowserWindow | null = null;
-let lastText = "";
-
-// 获取鼠标位置并计算窗口位置
-function calculateWindowPosition(width: number, height: number) {
-  // 获取鼠标位置
-  const mousePosition = screen.getCursorScreenPoint();
-  // 获取主显示器边界
-  const displayBounds = screen.getDisplayNearestPoint(mousePosition).workArea;
-
-  // 初始位置：鼠标位置
-  let x = mousePosition.x;
-  let y = mousePosition.y;
-
-  // 确保窗口不会超出右边界
-  if (x + width > displayBounds.x + displayBounds.width) {
-    x = displayBounds.x + displayBounds.width - width;
-  }
-
-  // 确保窗口不会超出左边界
-  if (x < displayBounds.x) {
-    x = displayBounds.x;
-  }
-
-  // 确保窗口不会超出底部边界
-  if (y + height > displayBounds.y + displayBounds.height) {
-    y = displayBounds.y + displayBounds.height - height;
-  }
-
-  // 确保窗口不会超出顶部边界
-  if (y < displayBounds.y) {
-    y = displayBounds.y;
-  }
-
-  return { x, y };
-}
-
-function startClipboardWatcher() {
-  console.log("开始监听剪贴板");
-  // 定期检查剪贴板
-  const timer = setInterval(() => {
-    try {
-      const currentText = clipboard.readText().trim();
-
-      // 检查是否有新内容
-      if (currentText && currentText !== lastText) {
-        console.log("检测到新内容:", currentText);
-        lastText = currentText;
-        mainWindow?.webContents.send("clipboard-update", currentText);
-      }
-    } catch (error) {
-      console.error("读取剪贴板错误:", error);
-    }
-  }, 1000); // 每秒检查一次
-
-  // 清理函数
-  app.on("will-quit", () => {
-    clearInterval(timer);
-  });
-}
 
 // 处理复制请求
 ipcMain.on("copy-text", (_, text) => {
@@ -131,12 +71,10 @@ function createWindow() {
     },
     frame: false,
     type: "toolbar",
+    resizable: false,
     alwaysOnTop: true,
     show: false,
   });
-
-  // 打开开发者工具
-  // mainWindow.webContents.openDevTools({ mode: "detach" });
 
   // 处理主页面路径
   if (process.env.VITE_DEV_SERVER_URL) {
@@ -160,53 +98,18 @@ function createWindow() {
   );
 }
 
-// 检查系统剪贴板服务
-function checkClipboardService() {
-  exec("pgrep pboard", (error, stdout) => {
-    if (error) {
-      console.error("剪贴板服务检查失败:", error);
-    } else {
-      console.log("剪贴板服务 PID:", stdout.trim());
-    }
-  });
-}
-
-// 注册全局快捷键
-function registerShortcut() {
-  globalShortcut.register("CommandOrControl+Shift+V", () => {
-    if (mainWindow) {
-      if (mainWindow.isVisible()) {
-        mainWindow.hide();
-      } else {
-        // 计算新位置
-        const { x, y } = calculateWindowPosition(440, 1200);
-
-        // 设置窗口位置
-        mainWindow.setPosition(x, y);
-
-        // 显示窗口
-        mainWindow.show();
-        mainWindow.focus();
-      }
-    }
-  });
-}
-
 // 应用初始化
 app.whenReady().then(() => {
   console.log("主进程: 应用就绪");
   checkClipboardService();
 
   createWindow();
-  registerShortcut();
-  startClipboardWatcher();
 
-  // macOS 专用的激活处理
-  app.on("activate", () => {
-    if (mainWindow === null) {
-      createWindow();
-    }
-  });
+  // 注册快捷键
+  if (mainWindow) {
+    registerShortcut(mainWindow);
+    startClipboardWatcher(mainWindow);
+  }
 });
 
 // 退出前清理
@@ -215,12 +118,12 @@ app.on("will-quit", () => {
   globalShortcut.unregisterAll();
 });
 
-// 当所有窗口关闭时不退出应用
-app.on("window-all-closed", (e: any) => {
-  e.preventDefault();
-});
-
 // 点击 dock 图标时显示窗口
 app.on("activate", () => {
   mainWindow?.show();
+});
+
+// 添加错误处理
+process.on("uncaughtException", (error) => {
+  console.error("未捕获的异常:", error);
 });

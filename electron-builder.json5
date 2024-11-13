@@ -1,38 +1,110 @@
 /**
+ * Electron Builder 配置文件
  * @see https://www.electron.build/configuration/configuration
  */
 {
-  appId: "YourAppID",
+  // 应用程序ID，通常使用反向DNS符号
+  appId: "com.clip-flow.app",
+
+  // 是否将应用程序文件打包成asar档案
   asar: true,
+
+  // 输出目录配置
   directories: {
-    // "output": "release/${version}"
-    output: "release/1.0.0",
+    // ${version}会被package.json中的版本号替换
+    output: "release/${version}",
   },
-  files: ["dist-electron", "dist"],
+
+  // 需要打包的文件
+  files: [
+    "dist-electron", // 主进程文件
+    "dist", // 渲染进程文件
+  ],
+
+  // macOS 相关配置
   mac: {
-    // "artifactName": "${productName}_${version}.${ext}",
-    artifactName: "zhantieban.dmg",
-    target: ["dmg"],
+    // 输出文件名格式
+    artifactName: "clip-flow.dmg",
+    // 目标格式
+    target: [
+      {
+        target: "dmg",
+        arch: ["x64", "arm64"],
+      },
+    ],
+    // 签名身份，null表示不签名
     identity: null,
+    // macOS 权限配置文件
+    hardenedRuntime: true,
+    gatekeeperAssess: false,
     entitlements: "build/entitlements.mac.plist",
     entitlementsInherit: "build/entitlements.mac.plist",
+    extendInfo: {
+      NSAppleEventsUsageDescription: "Clip Flow 需要使用键盘快捷键来控制窗口的显示和隐藏",
+      LSUIElement: true,
+      LSBackgroundOnly: false,
+    },
+    info: "build/Info.plist",
   },
+
+  // DMG 配置
   dmg: {
+    // 是否写入更新信息
     writeUpdateInfo: false,
+    // 是否签名DMG文件
     sign: false,
   },
+
+  // Windows 安装程序配置
   nsis: {
+    // 是否一键安装
     oneClick: false,
+    // 是否针对所有用户安装
     perMachine: false,
+    // 允许用户更改安装目录
     allowToChangeInstallationDirectory: true,
+    // 卸载时是否删除应用数据
     deleteAppDataOnUninstall: false,
   },
+
+  // 发布配置
   publish: {
+    // 发布提供者
     provider: "generic",
+    // 更新通道
     channel: "latest",
-    url: "https://github.com/electron-vite/electron-vite-react/releases/download/v0.9.9/",
+    // 更新包下载地址
+    url: "https://your-update-server.com/downloads/",
   },
+
+  // Electron 下载配置
   electronDownload: {
+    // 使用国内镜像加速下载
     mirror: "https://npmmirror.com/mirrors/electron/",
   },
+
+  // 添加 Windows 配置
+  win: {
+    // 应用图标
+    icon: "build/icon.ico",
+    // 目标类型
+    target: [
+      {
+        target: "nsis",
+        arch: ["x64"],
+      },
+    ],
+    // 文件属性
+    fileAssociations: {
+      ext: ["cf"],
+      name: "Clip Flow File",
+    },
+  },
+
+  // 构建配置
+  buildDependenciesFromSource: true,
+  nodeGypRebuild: false,
+
+  // 压缩配置
+  compression: "maximum",
 }

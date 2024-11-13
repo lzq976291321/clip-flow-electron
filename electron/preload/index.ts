@@ -19,3 +19,19 @@ contextBridge.exposeInMainWorld("clipboardManager", {
     ipcRenderer.send("copy-text", text);
   },
 });
+
+// 添加错误处理
+window.addEventListener("error", (event) => {
+  console.error("渲染进程错误:", event.error);
+});
+
+// 确保在使用 IPC 时检查窗口状态
+const safeIpc = {
+  send: (channel: string, ...args: any[]) => {
+    if (!window.electron) return;
+    ipcRenderer.send(channel, ...args);
+  },
+};
+
+// 导出安全的 IPC 调用
+contextBridge.exposeInMainWorld("safeIpc", safeIpc);

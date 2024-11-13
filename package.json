@@ -1,27 +1,14 @@
 {
-  "name": "electron-vite-react",
-  "version": "2.2.0",
+  "name": "clip-flow",
+  "version": "1.0.0",
   "main": "dist-electron/main/index.js",
-  "description": "Electron Vite React boilerplate.",
-  "author": "草鞋没号 <308487730@qq.com>",
-  "license": "MIT",
   "private": true,
-  "debug": {
-    "env": {
-      "VITE_DEV_SERVER_URL": "http://127.0.0.1:7777/"
-    }
-  },
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build && electron-builder",
     "preview": "vite preview",
-    "pree2e": "vite build --mode=test",
-    "e2e": "playwright test"
-  },
-  "dependencies": {
-    "electron-updater": "^6.1.8",
-    "lucide-react": "^0.456.0"
+    "pree2e": "vite build --mode=test"
   },
   "devDependencies": {
     "@playwright/test": "^1.42.1",
@@ -44,5 +31,12 @@
   "permissions": [
     "clipboardRead",
     "clipboardWrite"
-  ]
+  ],
+  "build": {
+    "mac": {
+      "extendInfo": {
+        "NSAppleEventsUsageDescription": "Clip Flow 需要使用以下快捷键：\n- Command+Shift+V：显示/隐藏主窗口\n- ESC：隐藏窗口\n- Command+Shift+I：打开开发者工具"
+      }
+    }
+  }
 }
